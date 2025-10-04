@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Snap &amp; Learn AI</string>
+    <string name="camera_permission_message">The camera is essential for this feature. Please grant the permission.</string>
+    <string name="grant_permission_btn">Grant Permission</string>
+</resources>
