@@ -16,10 +16,10 @@ fun CustomLoading() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppTheme.color.black.lighter(.5f)),
+            .background(AppTheme.color.black.lighter(.7f)),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(color = AppTheme.color.primary)
     }
 }
 

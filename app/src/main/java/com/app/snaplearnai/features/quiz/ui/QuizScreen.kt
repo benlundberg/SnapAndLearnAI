@@ -7,13 +7,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,10 +33,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.app.snaplearnai.features.quiz.ui.model.QuizUiState
 import com.app.snaplearnai.features.quiz.ui.model.UiQuizQuestion
+import com.app.snaplearnai.shared.ui.component.button.ButtonStyle
+import com.app.snaplearnai.shared.ui.component.button.CustomButton
 import com.app.snaplearnai.shared.ui.component.loading.CustomLoading
 import com.app.snaplearnai.shared.ui.theme.AppTheme
 import com.app.snaplearnai.shared.ui.theme.semiBold
-import com.app.snaplearnai.shared.ui.theme.whiteColor
 
 @Composable
 fun QuizScreen(
@@ -68,21 +71,24 @@ private fun QuizContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(vertical = AppTheme.spacings.xxl, horizontal = AppTheme.spacings.l)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(AppTheme.spacings.l)
     ) {
-        IconButton(
-            onClick = {
-                // TODO: Confirm go back button
-                onBack()
-            },
-            modifier = Modifier
-                .background(AppTheme.color.gray100)
-                .align(Alignment.End),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Close"
-            )
+        if (currentQuestion != null) {
+            IconButton(
+                onClick = {
+                    // TODO: Confirm go back button
+                    onBack()
+                },
+                modifier = Modifier
+                    .background(AppTheme.color.gray50)
+                    .align(Alignment.End),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close"
+                )
+            }
         }
 
         if (currentQuestion == null) {
@@ -109,11 +115,20 @@ fun QuestionCompletedView(correctAnswers: Int, totalQuestions: Int, onBack: () -
         contentAlignment = Alignment.Center
     ) {
         Column {
-            Text(text = "Quiz completed!")
-            Text(text = "You answered $correctAnswers out of $totalQuestions questions correctly.")
-            Button(onClick = onBack) {
-                Text(text = "Back to Home")
-            }
+            Text(text = "Quiz completed", style = AppTheme.typography.large.semiBold)
+            Spacer(modifier = Modifier.height(AppTheme.spacings.s))
+            Text(
+                text = "You answered $correctAnswers out of $totalQuestions questions correctly.",
+                style = AppTheme.typography.default
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacings.l))
+            CustomButton(
+                onClick = onBack,
+                text = "Back to Home",
+                modifier = Modifier.fillMaxWidth(),
+                style = ButtonStyle.SECONDARY
+            )
         }
     }
 }
@@ -146,7 +161,7 @@ private fun QuestionView(
                 val buttonColor by animateColorAsState(
                     targetValue = when {
                         answeredIndex == null -> {
-                            AppTheme.color.primary
+                            AppTheme.color.secondary
                         }
 
                         index == question.correctAnswerIndex -> {
@@ -164,38 +179,29 @@ private fun QuestionView(
                     label = "ButtonColorChange"
                 )
 
-                Button(
+                CustomButton(
                     onClick = {
                         answeredIndex = index
                         onAnswerSelected(index == question.correctAnswerIndex)
                     },
-                    colors = ButtonDefaults.buttonColors(
+                    buttonColors = ButtonDefaults.buttonColors(
                         containerColor = buttonColor
                     ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = option,
-                        style = AppTheme.typography.medium.whiteColor,
-                        modifier = Modifier.padding(AppTheme.spacings.s)
-                    )
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                    text = option
+                )
             }
 
             AnimatedVisibility(visible = answeredIndex != null) {
-                Button(
+                Spacer(modifier = Modifier.height(AppTheme.spacings.l))
+                CustomButton(
                     onClick = {
                         answeredIndex = null
                         onNextQuestion()
                     },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (isLastQuestion) "Continue" else "Next question",
-                        style = AppTheme.typography.medium.whiteColor,
-                        modifier = Modifier.padding(AppTheme.spacings.s)
-                    )
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                    text = if (isLastQuestion) "Continue" else "Next question"
+                )
             }
         }
     }

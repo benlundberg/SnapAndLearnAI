@@ -1,20 +1,20 @@
 package com.app.snaplearnai.features.camera.ui
 
 import android.net.Uri
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
+import com.app.snaplearnai.R
 import com.app.snaplearnai.features.camera.data.model.CameraDependencies
 import com.app.snaplearnai.features.camera.domain.CameraRepository
 import com.app.snaplearnai.features.camera.domain.usecase.ExplainTextUseCase
 import com.app.snaplearnai.features.camera.domain.usecase.GetQuizUseCase
 import com.app.snaplearnai.features.camera.domain.usecase.SummarizeTextUseCase
+import com.app.snaplearnai.features.camera.ui.error.CameraUiExceptionHandler
 import com.app.snaplearnai.features.camera.ui.model.CameraEvent
 import com.app.snaplearnai.features.camera.ui.model.CameraUiState
 import com.app.snaplearnai.features.camera.ui.model.FunctionActionType
 import com.app.snaplearnai.features.camera.ui.model.UiFunctionActionModel
 import com.app.snaplearnai.shared.ui.BaseViewmodel
+import com.app.snaplearnai.shared.util.LocalizedResources.localized
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
@@ -27,32 +27,33 @@ class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val summarizeTextUseCase: SummarizeTextUseCase,
     private val explainTextUseCase: ExplainTextUseCase,
-    private val getQuizUseCase: GetQuizUseCase
+    private val getQuizUseCase: GetQuizUseCase,
+    private val cameraUiExceptionHandler: CameraUiExceptionHandler
 ) : BaseViewmodel<CameraUiState>(CameraUiState()) {
 
     init {
         setState { state ->
             state.copy(
-                functionAction = listOf(
+                functionActions = listOf(
                     UiFunctionActionModel(
-                        label = "Summarize",
+                        label = R.string.gen_summarize.localized(),
                         type = FunctionActionType.SUMMARY,
-                        onClick = ::onSummarizeText
+                        onClick = ::onFunctionAction
                     ),
                     UiFunctionActionModel(
-                        label = "Translate",
+                        label = R.string.gen_translate.localized(),
                         type = FunctionActionType.TRANSLATE,
-                        onClick = ::onTranslateText
+                        onClick = ::onFunctionAction
                     ),
                     UiFunctionActionModel(
-                        label = "Explain",
+                        label = R.string.gen_explain.localized(),
                         type = FunctionActionType.EXPLAIN,
-                        onClick = ::onExplainText
+                        onClick = ::onFunctionAction
                     ),
                     UiFunctionActionModel(
-                        label = "Quizify",
+                        label = R.string.gen_quizify.localized(),
                         type = FunctionActionType.QUIZ,
-                        onClick = ::onQuizifyTextText
+                        onClick = ::onFunctionAction
                     )
                 )
             )
@@ -64,7 +65,6 @@ class CameraViewModel @Inject constructor(
     private fun observeDataFlows() {
         // When text is recognized, update the UI state
         cameraRepository.recognizedTextFlow.onEach { text ->
-
             if (!uiState.isLoading) {
                 setState { state ->
                     state.copy(recognizedText = text, isRecognizedCompleted = !text.isEmpty())
@@ -77,34 +77,43 @@ class CameraViewModel @Inject constructor(
      * Call from the Composable (UI) once the PreviewView is ready. This method
      * will start the text analysis
      */
-    fun onPreviewViewReady(
-        owner: LifecycleOwner,
-        provider: ProcessCameraProvider,
-        surface: Preview.SurfaceProvider
-    ) {
+    fun onPreviewViewReady(cameraDependencies: CameraDependencies) {
         // Start the analysis process
-        cameraRepository.startAnalysis(
-            CameraDependencies(
-                lifecycleOwner = owner,
-                cameraProvider = provider,
-                surfaceProvider = surface
-            )
-        ) { exception ->
-            // TODO: Handle exception
+        cameraRepository.startAnalysis(cameraDependencies) { exception ->
+            sendEvent(cameraUiExceptionHandler.handleException(exception))
         }
     }
 
-    fun onSummarizeText() {
+    fun onFunctionAction(type: FunctionActionType) {
         setState { state ->
             state.copy(isLoading = true)
         }
 
+        val textToAnalyze = if (uiState.isCameraMode) uiState.recognizedText else uiState.inputText
+
         viewModelScope.launch {
             try {
-                val result = summarizeTextUseCase(uiState.recognizedText)
-                sendEvent(CameraEvent.AnswerEvent(result ?: ""))
+                when (type) {
+                    FunctionActionType.SUMMARY -> {
+                        val res = summarizeTextUseCase(textToAnalyze)
+                        sendEvent(CameraEvent.AnswerEvent(res ?: ""))
+                    }
+                    FunctionActionType.TRANSLATE -> {
+                        // TODO: Translate text
+                    }
+                    FunctionActionType.EXPLAIN -> {
+                        val res = explainTextUseCase(textToAnalyze)
+                        sendEvent(CameraEvent.AnswerEvent(res ?: ""))
+                    }
+                    FunctionActionType.QUIZ -> {
+                        val questions = getQuizUseCase(textToAnalyze)
+                        val questionJson = Uri.encode(Gson().toJson(questions))
+
+                        sendEvent(CameraEvent.QuizCompleteEvent(questionJson ?: ""))
+                    }
+                }
             } catch (e: Exception) {
-                // TODO: Handle exception
+                sendEvent(cameraUiExceptionHandler.handleException(e))
             } finally {
                 setState { state ->
                     state.copy(isLoading = false)
@@ -113,49 +122,20 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    fun onTranslateText() {
-
-    }
-
-    fun onExplainText() {
+    fun onInputModeChanged(isCameraMode: Boolean) {
         setState { state ->
-            state.copy(isLoading = true)
-        }
-
-        viewModelScope.launch {
-            try {
-                val result = explainTextUseCase(uiState.recognizedText)
-                sendEvent(CameraEvent.AnswerEvent(result ?: ""))
-            } catch (e: Exception) {
-                1
-                // TODO: Handle exception
-            } finally {
-                setState { state ->
-                    state.copy(isLoading = false)
-                }
-            }
+            state.copy(isCameraMode = isCameraMode)
         }
     }
 
-    fun onQuizifyTextText() {
+    fun onTextChange(text: String) {
         setState { state ->
-            state.copy(isLoading = true)
+            state.copy(inputText = text, isRecognizedCompleted = text.isNotEmpty())
         }
+    }
 
-        viewModelScope.launch {
-            try {
-                val questions = getQuizUseCase(uiState.recognizedText)
-                val questionJson = Uri.encode(Gson().toJson(questions))
+    fun onBookmark(isBookmarked: Boolean) {
 
-                sendEvent(CameraEvent.QuizCompleteEvent(questionJson ?: ""))
-            } catch (e: Exception) {
-                // TODO: Handle exception
-            } finally {
-                setState { state ->
-                    state.copy(isLoading = false)
-                }
-            }
-        }
     }
 
     override fun onCleared() {

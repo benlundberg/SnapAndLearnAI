@@ -1,6 +1,5 @@
 package com.app.snaplearnai.features.camera.ui.component
 
-import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,18 +11,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.app.snaplearnai.features.camera.data.model.CameraDependencies
+import com.app.snaplearnai.shared.ui.theme.AppTheme
 
 @Composable
 fun CameraPreview(
-    onPreviewReady: (LifecycleOwner, ProcessCameraProvider, Preview.SurfaceProvider) -> Unit,
+    onPreviewReady: (CameraDependencies) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (LocalInspectionMode.current) {
         // Do not show camera preview in preview mode
         Surface(
-            modifier = Modifier.fillMaxSize()
+            color = AppTheme.color.gray950,
+            modifier = modifier.fillMaxSize()
         ) {
 
         }
@@ -44,7 +45,13 @@ fun CameraPreview(
             cameraProviderFuture.addListener(
                 {
                     val cameraProvider = cameraProviderFuture.get()
-                    onPreviewReady(lifecycleOwner, cameraProvider, view.surfaceProvider)
+                    onPreviewReady(
+                        CameraDependencies(
+                            lifecycleOwner = lifecycleOwner,
+                            cameraProvider = cameraProvider,
+                            surfaceProvider = view.surfaceProvider
+                        )
+                    )
                 },
                 ContextCompat.getMainExecutor(context),
             )

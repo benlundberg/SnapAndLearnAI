@@ -1,25 +1,24 @@
 package com.app.snaplearnai.features.camera.ui
 
 import android.Manifest
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -27,29 +26,29 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
+import com.app.snaplearnai.R
+import com.app.snaplearnai.features.camera.data.model.CameraDependencies
+import com.app.snaplearnai.features.camera.ui.component.BottomSheetText
+import com.app.snaplearnai.features.camera.ui.component.CameraPermissionRationale
 import com.app.snaplearnai.features.camera.ui.component.CameraPreview
-import com.app.snaplearnai.features.camera.ui.component.PermissionRationale
-import com.app.snaplearnai.features.camera.ui.component.TextFunctionButton
+import com.app.snaplearnai.features.camera.ui.component.FunctionActionsView
 import com.app.snaplearnai.features.camera.ui.model.CameraEvent
 import com.app.snaplearnai.features.camera.ui.model.CameraUiState
+import com.app.snaplearnai.features.camera.ui.model.FunctionActionType
 import com.app.snaplearnai.features.camera.ui.model.UiFunctionActionModel
 import com.app.snaplearnai.shared.ui.component.loading.CustomLoading
 import com.app.snaplearnai.shared.ui.theme.AppTheme
+import com.app.snaplearnai.shared.ui.theme.lighter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -60,15 +59,18 @@ fun CameraScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var bottomSheetText by remember { mutableStateOf("") }
 
+    // Handle events from view model
     LaunchedEffect(Unit) {
         viewModel.eventsFlow.collect { event ->
             when (event) {
                 is CameraEvent.AnswerEvent -> {
+                    // Show simple text answer result in bottom sheet
                     showBottomSheet = true
                     bottomSheetText = event.answer
                 }
 
                 is CameraEvent.QuizCompleteEvent -> {
+                    // Will navigate to quiz screen and pass the question json
                     onQuiz(event.questionJson)
                 }
             }
@@ -81,14 +83,18 @@ fun CameraScreen(
     when {
         cameraPermissionState.status.isGranted -> {
             val state by viewModel.uiStateFlow.collectAsState()
+
+            // Camera is granted, show content
             CameraContent(
                 state = state,
                 onPreviewReady = viewModel::onPreviewViewReady,
+                onInputModeChanged = viewModel::onInputModeChanged,
+                onInputTextChanged = viewModel::onTextChange
             )
         }
 
         cameraPermissionState.status.shouldShowRationale -> {
-            PermissionRationale {
+            CameraPermissionRationale {
                 cameraPermissionState.launchPermissionRequest()
             }
         }
@@ -100,9 +106,11 @@ fun CameraScreen(
         }
     }
 
+    // Bottom sheet to show simple text answer
     BottomSheetText(
         text = bottomSheetText,
         showBottomSheet = showBottomSheet,
+        onBookmark = viewModel::onBookmark,
         onDismiss = { showBottomSheet = false }
     )
 }
@@ -110,21 +118,53 @@ fun CameraScreen(
 @Composable
 private fun CameraContent(
     state: CameraUiState,
-    onPreviewReady: (LifecycleOwner, ProcessCameraProvider, androidx.camera.core.Preview.SurfaceProvider) -> Unit
+    onPreviewReady: (CameraDependencies) -> Unit,
+    onInputModeChanged: (Boolean) -> Unit,
+    onInputTextChanged: (String) -> Unit
 ) {
-    // Camera preview
-    CameraPreview(onPreviewReady = onPreviewReady)
-
-    Box(
+    Surface(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars),
-        contentAlignment = Alignment.BottomCenter,
+            .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
-        BottomActionButtons(
-            actions = state.functionAction,
-            isRecognizeComplete = state.isRecognizedCompleted
-        )
+        Crossfade(targetState = state.isCameraMode) { isCameraMode ->
+            Column {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    if (isCameraMode) {
+                        CameraPreview(
+                            onPreviewReady = onPreviewReady,
+                        )
+                    } else {
+                        TextInputView(
+                            state = state,
+                            onInputTextChanged = onInputTextChanged
+                        )
+                    }
+
+                    FloatingActionButton(
+                        onClick = {
+                            onInputModeChanged(!isCameraMode)
+                        },
+                        containerColor = AppTheme.color.secondary.lighter(.8f),
+                        modifier = Modifier
+                            .padding(AppTheme.spacings.xl)
+                    ) {
+                        Icon(
+                            imageVector = if (isCameraMode) Icons.Default.TextFields else Icons.Default.CameraAlt,
+                            contentDescription = null
+                        )
+                    }
+                }
+
+                FunctionActionsView(
+                    actions = state.functionActions,
+                    isRecognizeComplete = state.isRecognizedCompleted
+                )
+            }
+        }
 
         if (state.isLoading) {
             CustomLoading()
@@ -133,100 +173,29 @@ private fun CameraContent(
 }
 
 @Composable
-private fun BottomActionButtons(
-    actions: List<UiFunctionActionModel>,
-    isRecognizeComplete: Boolean
-) {
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .padding(horizontal = AppTheme.spacings.m, vertical = AppTheme.spacings.l),
-        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacings.s)
-    ) {
-        var isButtonsTriggered by remember { mutableStateOf(false) }
-        val resetButtonsAnimation = { isButtonsTriggered = false }
-
-        LaunchedEffect(isRecognizeComplete) {
-            if (isRecognizeComplete) {
-                isButtonsTriggered = true
-            }
-        }
-
-        if (isButtonsTriggered) {
-            LaunchedEffect(true) {
-                delay(500)
-                resetButtonsAnimation()
-            }
-        }
-
-        actions.forEach { actionModel ->
-            TextFunctionButton(
-                label = actionModel.label,
-                type = actionModel.type,
-                isEnabled = isRecognizeComplete,
-                isTriggered = isButtonsTriggered,
-                onClick = actionModel.onClick,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BottomSheetText(
-    text: String,
-    showBottomSheet: Boolean,
-    onDismiss: () -> Unit,
+fun TextInputView(
+    state: CameraUiState,
+    onInputTextChanged: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    val scope = rememberCoroutineScope()
-
-    // 4. Show the ModalBottomSheet when the state is true
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                // This is called when the user swipes down or taps the scrim
-                onDismiss()
-            },
-            sheetState = sheetState
-        ) {
-            // Your custom content goes here (e.g., Column with Text and Button)
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // The Text you want to display
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .imePadding()
+            .padding(AppTheme.spacings.m)
+    ) {
+        TextField(
+            value = state.inputText,
+            modifier = Modifier.fillMaxSize(),
+            onValueChange = { onInputTextChanged(it) },
+            placeholder = {
                 Text(
-                    text = text,
+                    text = stringResource(id = R.string.input_text_placeholder),
                     style = AppTheme.typography.default
                 )
-                Spacer(Modifier.height(32.dp))
-
-                // Button to hide the sheet programmatically
-                Button(
-                    onClick = {
-                        scope.launch {
-                            sheetState.hide()
-                        }.invokeOnCompletion {
-                            // Only remove it from composition AFTER the hide animation is done
-                            if (!sheetState.isVisible) {
-                                onDismiss()
-                            }
-                        }
-                    }
-                ) {
-                    Text("Dismiss")
-                }
-                Spacer(Modifier.height(16.dp)) // Extra padding at the bottom
             }
-        }
+        )
     }
 }
 
@@ -237,10 +206,52 @@ private fun BottomSheetText(
 @Composable
 private fun LightPreview() {
     AppTheme {
-        CameraContent(
-            state = CameraUiState(),
-        ) { _, _, _ ->
-
-        }
+        PreviewContent(isCameraMode = true)
     }
+}
+
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+private fun DarkPreview() {
+    AppTheme(darkTheme = true) {
+        PreviewContent(isCameraMode = false)
+    }
+}
+
+@Composable
+private fun PreviewContent(isCameraMode: Boolean) {
+    CameraContent(
+        state = CameraUiState(
+            isLoading = false,
+            isCameraMode = isCameraMode,
+            functionActions = listOf(
+                UiFunctionActionModel(
+                    label = "Summary",
+                    type = FunctionActionType.SUMMARY,
+                    onClick = { }
+                ),
+                UiFunctionActionModel(
+                    label = "Translate",
+                    type = FunctionActionType.TRANSLATE,
+                    onClick = { }
+                ),
+                UiFunctionActionModel(
+                    label = "Explain",
+                    type = FunctionActionType.EXPLAIN,
+                    onClick = { }
+                ),
+                UiFunctionActionModel(
+                    label = "Quizify",
+                    type = FunctionActionType.QUIZ,
+                    onClick = { }
+                )
+            )
+        ),
+        onPreviewReady = { },
+        onInputModeChanged = { },
+        onInputTextChanged = { }
+    )
 }

@@ -34,7 +34,7 @@ fun CustomSnackBar(
 ) {
     val config = when (type) {
         SnackBarType.INFO -> Pair(
-            AppTheme.color.skyBlue,
+            AppTheme.color.gray100,
             Icons.Filled.Info
         )
 

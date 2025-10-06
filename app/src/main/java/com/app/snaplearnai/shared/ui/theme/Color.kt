@@ -10,12 +10,12 @@ val Color.light: Color
 fun Color.lighter(value: Float) =
     this.copy(alpha = value)
 
-val primary = Color(0xFF1976D2)
-val secondary = Color(0xFF8BC34A)
+val primary = Color(0xFF3DDC84)
+val secondary = Color(0xFF42A3D2)
 val white = Color(0xFFFFFFFF)
 val black = Color(0xFF2B2B2B)
-val brickRed = Color(0xFFED6677)
-val sunYellow = Color(0xFFF7B86E)
+val brickRed = Color(0xFFEE4285)
+val sunYellow = Color(0xFFFFAA47)
 val grassGreen = Color(0xFF9ABB70)
 val skyBlue = Color(0xFF2BC6EB)
 
