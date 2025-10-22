@@ -2,6 +2,7 @@ package com.app.snaplearnai.shared.ui.component.page
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.Flow
 fun CustomScaffold(
     title: String? = null,
     onBack: (() -> Unit)? = null,
+    actions: @Composable (RowScope.() -> Unit)? = null,
+    leadingAction: @Composable (() -> Unit)? = null,
     snackbarEventFlow: Flow<OneTimeEvent>? = null,
     onEvent: ((OneTimeEvent) -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
@@ -33,14 +36,16 @@ fun CustomScaffold(
         onEvent = onEvent
     )
 
-    val hasTopBar = title != null || onBack != null
+    val hasTopBar = title != null || onBack != null || actions != null || leadingAction != null
 
     Scaffold(
         topBar = {
             if (hasTopBar) {
                 CustomTopBar(
                     title = title,
-                    onBack = onBack
+                    onBack = onBack,
+                    actions = actions,
+                    leadingAction = leadingAction
                 )
             }
         },

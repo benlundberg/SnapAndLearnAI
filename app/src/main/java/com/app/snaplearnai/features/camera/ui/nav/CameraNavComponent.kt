@@ -3,6 +3,7 @@ package com.app.snaplearnai.features.camera.ui.nav
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.app.snaplearnai.features.bookmarks.ui.nav.BookmarkRoute
 import com.app.snaplearnai.features.camera.ui.CameraScreen
 import com.app.snaplearnai.features.quiz.ui.nav.QuizRoute
 
@@ -18,6 +19,9 @@ fun NavGraphBuilder.cameraNav(
             onQuiz = { questionJson ->
                 // Navigate to quiz screen
                 navHostController.navigate("${QuizRoute.QUIZ}/${questionJson}")
+            },
+            onBookmarks = {
+                navHostController.navigate(route = BookmarkRoute.BOOKMARK)
             }
         )
     }

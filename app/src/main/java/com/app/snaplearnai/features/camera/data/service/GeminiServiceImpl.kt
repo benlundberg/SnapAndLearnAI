@@ -51,11 +51,7 @@ class GeminiServiceImpl @Inject constructor() : GeminiService {
     }
 
     override suspend fun generateText(prompt: String): String? {
-        return try {
-            val response = client.generateContent(prompt)
-            response.text
-        } catch (e: Exception) {
-            "Error"
-        }
+        val response = client.generateContent(prompt)
+        return response.text
     }
 }

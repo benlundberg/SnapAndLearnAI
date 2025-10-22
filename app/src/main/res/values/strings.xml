@@ -13,4 +13,17 @@
     <string name="unexpected_error">Unexpected error</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="input_text_placeholder">Enter text</string>
+    <string name="bookmarks_title">Bookmarks</string>
+    <string name="bookmarks_btn">Your bookmarks</string>
+    <string name="cancel_dialog_title">Confirm cancel</string>
+    <string name="cancel_quiz_dialog_msg">Are you sure you want to cancel the quiz?</string>
+    <string name="gen_yes">Yes</string>
+    <string name="gen_no">No</string>
+    <string name="quiz_complete_title">Quiz completed</string>
+    <string name="quiz_complete_msg">You answered %1$d out of %2$d questions correctly.</string>
+    <string name="gen_continue">Continue</string>
+    <string name="next_question_btn">Next question</string>
+    <string name="back_to_home_btn">Go back</string>
+    <string name="gen_loading">Loading...</string>
+    <string name="gen_delete">Delete</string>
 </resources>

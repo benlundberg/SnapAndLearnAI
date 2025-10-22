@@ -9,15 +9,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CopyAll
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -36,7 +39,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.app.snaplearnai.R
 import com.app.snaplearnai.shared.ui.component.button.IconLabelButton
 import com.app.snaplearnai.shared.ui.theme.AppTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,10 +46,14 @@ import kotlinx.coroutines.launch
 fun BottomSheetText(
     text: String,
     showBottomSheet: Boolean,
-    onBookmark: (Boolean) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onBookmark: ((Boolean, String) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    isBookmarked: Boolean = false
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
 
     val scope = rememberCoroutineScope()
 
@@ -55,17 +61,28 @@ fun BottomSheetText(
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                // This is called when the user swipes down or taps the scrim
                 onDismiss()
             },
+            properties = ModalBottomSheetProperties(
+                shouldDismissOnBackPress = false,
+                shouldDismissOnClickOutside = false
+            ),
             sheetState = sheetState
         ) {
             BottomSheetContent(
                 text = text,
-                sheetState = sheetState,
-                scope = scope,
+                bookmarked = isBookmarked,
                 onBookmark = onBookmark,
-                onDismiss = onDismiss
+                onDelete = onDelete,
+                onDismiss = {
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        if (!sheetState.isVisible) {
+                            onDismiss()
+                        }
+                    }
+                }
             )
         }
     }
@@ -75,10 +92,10 @@ fun BottomSheetText(
 @Composable
 private fun BottomSheetContent(
     text: String,
-    sheetState: SheetState,
-    scope: CoroutineScope,
-    onBookmark: (Boolean) -> Unit,
-    onDismiss: () -> Unit
+    bookmarked: Boolean,
+    onDismiss: () -> Unit,
+    onBookmark: ((Boolean, String) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -102,17 +119,6 @@ private fun BottomSheetContent(
                 label = stringResource(R.string.gen_copy)
             )
 
-            var isBookmarked by remember { mutableStateOf(false) }
-
-            IconLabelButton(
-                onClick = {
-                    isBookmarked = !isBookmarked
-                    onBookmark(isBookmarked)
-                },
-                icon = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkAdd,
-                label = stringResource(R.string.gen_bookmark)
-            )
-
             val context = LocalContext.current
 
             IconLabelButton(
@@ -129,16 +135,29 @@ private fun BottomSheetContent(
                 label = stringResource(R.string.gen_share)
             )
 
+            var isBookmarked by remember { mutableStateOf(bookmarked) }
+
+            if (onBookmark != null) {
+                IconLabelButton(
+                    onClick = {
+                        isBookmarked = !isBookmarked
+                        onBookmark(isBookmarked, text)
+                    },
+                    icon = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkAdd,
+                    label = stringResource(R.string.gen_bookmark)
+                )
+            } else if (onDelete != null) {
+                IconLabelButton(
+                    onClick = {
+                        onDelete()
+                    },
+                    icon = Icons.Filled.Delete,
+                    label = stringResource(R.string.gen_delete)
+                )
+            }
+
             IconLabelButton(
-                onClick = {
-                    scope.launch {
-                        sheetState.hide()
-                    }.invokeOnCompletion {
-                        if (!sheetState.isVisible) {
-                            onDismiss()
-                        }
-                    }
-                },
+                onClick = onDismiss,
                 icon = Icons.Default.Cancel,
                 label = stringResource(R.string.gen_dismiss)
             )
@@ -147,7 +166,8 @@ private fun BottomSheetContent(
 
         Text(
             text = text,
-            style = AppTheme.typography.default
+            style = AppTheme.typography.default,
+            modifier = Modifier.verticalScroll(rememberScrollState())
         )
 
         Spacer(Modifier.height(AppTheme.spacings.m)) // Extra padding at the bottom
@@ -177,8 +197,9 @@ private fun DarkPreview() {
 private fun PreviewContent() {
     BottomSheetContent(
         text = "Text in bottom sheet",
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        scope = rememberCoroutineScope(),
-        onBookmark = { },
-    ) { }
+        bookmarked = true,
+        onDismiss = { },
+        onBookmark = { _, _ -> },
+        onDelete = { }
+    )
 }

@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -43,8 +44,8 @@ import com.app.snaplearnai.features.camera.ui.model.CameraUiState
 import com.app.snaplearnai.features.camera.ui.model.FunctionActionType
 import com.app.snaplearnai.features.camera.ui.model.UiFunctionActionModel
 import com.app.snaplearnai.shared.ui.component.loading.CustomLoading
+import com.app.snaplearnai.shared.ui.component.page.CustomScaffold
 import com.app.snaplearnai.shared.ui.theme.AppTheme
-import com.app.snaplearnai.shared.ui.theme.lighter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -54,7 +55,8 @@ import com.google.accompanist.permissions.shouldShowRationale
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel = hiltViewModel(),
-    onQuiz: (String) -> Unit
+    onQuiz: (String) -> Unit,
+    onBookmarks: () -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var bottomSheetText by remember { mutableStateOf("") }
@@ -89,7 +91,8 @@ fun CameraScreen(
                 state = state,
                 onPreviewReady = viewModel::onPreviewViewReady,
                 onInputModeChanged = viewModel::onInputModeChanged,
-                onInputTextChanged = viewModel::onTextChange
+                onInputTextChanged = viewModel::onTextChange,
+                onBookmarks = onBookmarks
             )
         }
 
@@ -120,54 +123,63 @@ private fun CameraContent(
     state: CameraUiState,
     onPreviewReady: (CameraDependencies) -> Unit,
     onInputModeChanged: (Boolean) -> Unit,
-    onInputTextChanged: (String) -> Unit
+    onInputTextChanged: (String) -> Unit,
+    onBookmarks: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-    ) {
-        Crossfade(targetState = state.isCameraMode) { isCameraMode ->
-            Column {
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.BottomEnd
-                ) {
-                    if (isCameraMode) {
-                        CameraPreview(
-                            onPreviewReady = onPreviewReady,
-                        )
-                    } else {
-                        TextInputView(
-                            state = state,
-                            onInputTextChanged = onInputTextChanged
-                        )
-                    }
-
-                    FloatingActionButton(
-                        onClick = {
-                            onInputModeChanged(!isCameraMode)
-                        },
-                        containerColor = AppTheme.color.secondary.lighter(.8f),
-                        modifier = Modifier
-                            .padding(AppTheme.spacings.xl)
-                    ) {
-                        Icon(
-                            imageVector = if (isCameraMode) Icons.Default.TextFields else Icons.Default.CameraAlt,
-                            contentDescription = null
-                        )
-                    }
-                }
-
-                FunctionActionsView(
-                    actions = state.functionActions,
-                    isRecognizeComplete = state.isRecognizedCompleted
+    CustomScaffold(
+        leadingAction = {
+            IconButton(onClick  = onBookmarks) {
+                Icon(
+                    imageVector = Icons.Default.Bookmarks,
+                    contentDescription = null
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = {
+                onInputModeChanged(!state.isCameraMode)
+            }) {
+                Icon(
+                    imageVector = if (state.isCameraMode) Icons.Default.TextFields else Icons.Default.CameraAlt,
+                    contentDescription = null
                 )
             }
         }
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+        ) {
+            Crossfade(targetState = state.isCameraMode) { isCameraMode ->
+                Column {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        if (isCameraMode) {
+                            CameraPreview(
+                                isRecognized = state.isRecognizedCompleted,
+                                onPreviewReady = onPreviewReady,
+                            )
+                        } else {
+                            TextInputView(
+                                state = state,
+                                onInputTextChanged = onInputTextChanged
+                            )
+                        }
+                    }
 
-        if (state.isLoading) {
-            CustomLoading()
+                    FunctionActionsView(
+                        actions = state.functionActions,
+                        isRecognizeComplete = state.isRecognizedCompleted
+                    )
+                }
+            }
+
+            if (state.isLoading) {
+                CustomLoading()
+            }
         }
     }
 }
@@ -234,11 +246,6 @@ private fun PreviewContent(isCameraMode: Boolean) {
                     onClick = { }
                 ),
                 UiFunctionActionModel(
-                    label = "Translate",
-                    type = FunctionActionType.TRANSLATE,
-                    onClick = { }
-                ),
-                UiFunctionActionModel(
                     label = "Explain",
                     type = FunctionActionType.EXPLAIN,
                     onClick = { }
@@ -252,6 +259,7 @@ private fun PreviewContent(isCameraMode: Boolean) {
         ),
         onPreviewReady = { },
         onInputModeChanged = { },
-        onInputTextChanged = { }
+        onInputTextChanged = { },
+        onBookmarks = { }
     )
 }

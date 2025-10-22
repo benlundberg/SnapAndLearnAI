@@ -3,6 +3,8 @@ package com.app.snaplearnai.features.camera.ui
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.app.snaplearnai.R
+import com.app.snaplearnai.features.bookmarks.domain.usecase.DeleteBookmarkUseCase
+import com.app.snaplearnai.features.bookmarks.domain.usecase.InsertBookmarkUseCase
 import com.app.snaplearnai.features.camera.data.model.CameraDependencies
 import com.app.snaplearnai.features.camera.domain.CameraRepository
 import com.app.snaplearnai.features.camera.domain.usecase.ExplainTextUseCase
@@ -28,7 +30,9 @@ class CameraViewModel @Inject constructor(
     private val summarizeTextUseCase: SummarizeTextUseCase,
     private val explainTextUseCase: ExplainTextUseCase,
     private val getQuizUseCase: GetQuizUseCase,
-    private val cameraUiExceptionHandler: CameraUiExceptionHandler
+    private val cameraUiExceptionHandler: CameraUiExceptionHandler,
+    private val deleteBookmarkUseCase: DeleteBookmarkUseCase,
+    private val insertBookmarkUseCase: InsertBookmarkUseCase
 ) : BaseViewmodel<CameraUiState>(CameraUiState()) {
 
     init {
@@ -38,11 +42,6 @@ class CameraViewModel @Inject constructor(
                     UiFunctionActionModel(
                         label = R.string.gen_summarize.localized(),
                         type = FunctionActionType.SUMMARY,
-                        onClick = ::onFunctionAction
-                    ),
-                    UiFunctionActionModel(
-                        label = R.string.gen_translate.localized(),
-                        type = FunctionActionType.TRANSLATE,
                         onClick = ::onFunctionAction
                     ),
                     UiFunctionActionModel(
@@ -98,13 +97,16 @@ class CameraViewModel @Inject constructor(
                         val res = summarizeTextUseCase(textToAnalyze)
                         sendEvent(CameraEvent.AnswerEvent(res ?: ""))
                     }
+
                     FunctionActionType.TRANSLATE -> {
                         // TODO: Translate text
                     }
+
                     FunctionActionType.EXPLAIN -> {
                         val res = explainTextUseCase(textToAnalyze)
                         sendEvent(CameraEvent.AnswerEvent(res ?: ""))
                     }
+
                     FunctionActionType.QUIZ -> {
                         val questions = getQuizUseCase(textToAnalyze)
                         val questionJson = Uri.encode(Gson().toJson(questions))
@@ -134,8 +136,17 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    fun onBookmark(isBookmarked: Boolean) {
-
+    fun onBookmark(isBookmarked: Boolean, text: String) {
+        viewModelScope.launch {
+            if (isBookmarked) {
+                insertBookmarkUseCase.invoke(
+                    text = text,
+                    originalText = if (uiState.isCameraMode) uiState.recognizedText else uiState.inputText
+                )
+            } else {
+                deleteBookmarkUseCase.invoke(null)
+            }
+        }
     }
 
     override fun onCleared() {

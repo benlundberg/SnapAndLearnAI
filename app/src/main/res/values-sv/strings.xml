@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Snap &amp; Learn AI</string>
+    <string name="camera_permission_message">Kameran är nödvändig för den här funktionen. Vänligen ge behörighet.</string>
+    <string name="grant_permission_btn">Ge behörighet</string>
+    <string name="gen_copy">Kopiera</string>
+    <string name="gen_bookmark">Bokmärk</string>
+    <string name="gen_share">Dela</string>
+    <string name="gen_dismiss">Stäng</string>
+    <string name="gen_summarize">Sammanfatta</string>
+    <string name="gen_translate">Översätt</string>
+    <string name="gen_explain">Förklara</string>
+    <string name="gen_quizify">Skapa quiz</string>
+    <string name="unexpected_error">Oväntat fel</string>
+    <string name="copied_to_clipboard">Kopierat till urklipp</string>
+    <string name="input_text_placeholder">Ange text</string>
+    <string name="bookmarks_title">Bokmärken</string>
+    <string name="bookmarks_btn">Dina bokmärken</string>
+    <string name="cancel_dialog_title">Avbryt</string>
+    <string name="cancel_quiz_dialog_msg">Är du säker att du vill avbryta quizet?</string>
+    <string name="gen_yes">Ja</string>
+    <string name="gen_no">Nej</string>
+    <string name="quiz_complete_title">Quiz klart</string>
+    <string name="quiz_complete_msg">Du svarade %1$d utav %2$d frågor rätt.</string>
+    <string name="gen_continue">Fortsätt</string>
+    <string name="next_question_btn">Nästa fråga</string>
+    <string name="back_to_home_btn">Tillbaka</string>
+    <string name="gen_loading">Laddar...</string>
+</resources>

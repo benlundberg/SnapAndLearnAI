@@ -12,7 +12,7 @@ class AIServiceImpl @Inject constructor(
 ) : AIService {
 
     override suspend fun summarize(text: String): String {
-        val prompt = "Please summarize the following text concisely: $text"
+        val prompt = "Please summarize the following text concisely in same language as the text: $text"
         return geminiService.generateText(prompt) ?: ""
     }
 
@@ -25,7 +25,7 @@ class AIServiceImpl @Inject constructor(
     }
 
     override suspend fun explain(text: String): String {
-        val prompt = "Please explain the following text in short sentences: $text"
+        val prompt = "Please explain the following text in short sentences in same language as the text: $text"
         return geminiService.generateText(prompt) ?: ""
     }
 
@@ -47,7 +47,9 @@ class AIServiceImpl @Inject constructor(
             
             You must strictly return a single JSON object. 
             DO NOT include any text, greetings, explanations, or MARKDOWN CODE BLOCK DELIMITERS (like ```json or ```) outside of the JSON.
-    
+            
+            Please return the JSON-data in the detected language
+            
             Structure:
             $jsonTemplate
             Text to analyze:

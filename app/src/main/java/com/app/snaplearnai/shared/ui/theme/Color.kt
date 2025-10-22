@@ -10,7 +10,7 @@ val Color.light: Color
 fun Color.lighter(value: Float) =
     this.copy(alpha = value)
 
-val primary = Color(0xFF3DDC84)
+val primary = Color(0xFF4CAF50)
 val secondary = Color(0xFF42A3D2)
 val white = Color(0xFFFFFFFF)
 val black = Color(0xFF2B2B2B)
@@ -30,7 +30,7 @@ val gray900 = Color(0xFF212121)
 val gray950 = Color(0xFF141414)
 
 val lightBackground = Color(0xFFF9F9FB)
-val darkBackground = Color(0xFF292C30)
+val darkBackground = Color(0xFF272746)
 
 val topBar = Color(0xFF2B2930)
 val topBarContent = Color(0xFFF9F9FB)
